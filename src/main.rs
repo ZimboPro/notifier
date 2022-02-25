@@ -4,14 +4,13 @@ use yaml_rust::{YamlLoader};
 extern crate cron;
 extern crate chrono;
 
-use cron::Schedule;
 use std::str::FromStr;
 
 use notify_rust::Notification;
 use std::fs;
 
-extern crate job_scheduler;
-use job_scheduler::{JobScheduler, Job};
+mod job_scheduler;
+use job_scheduler::{JobScheduler, Job, Schedule};
 use std::time::Duration;
 
 #[cfg(all(unix, not(target_os = "macos")))]
@@ -53,7 +52,9 @@ fn load_yaml_and_schedule(content: String) {
       let cron = notification["cron"].as_str().unwrap();
       if check_cron(&cron) {
         scheduled = true;
-        schedules.add(Job::new( cron.parse().unwrap(), || {
+        let schedule: Schedule = cron.parse().unwrap();
+        schedules.add(Job::new( schedule, || {
+
           #[cfg(all(unix, not(target_os = "macos")))]
           Notification::new()
             .body(label)
@@ -82,7 +83,7 @@ fn load_yaml_and_schedule(content: String) {
     }
     if scheduled {
       loop {
-        schedules.tick();
+        schedules.tick_with_system_time();
         std::thread::sleep(Duration::from_millis(500));
       }
     } else {

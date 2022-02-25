@@ -22,7 +22,7 @@ notifications:
 
 ```
 
-The cron strucutre is 
+The cron strucutre is
 ```
 sec   min   hour   day of month   month   day of week   year
 *     *     *      *              *       *             *
@@ -37,3 +37,10 @@ It is supported on Linux. Windows and MacOS still needs to be tested.
 ### Start Up
 
 A script or instructions to have the executable run at start up still needs to be added
+
+## TODO
+
+ * Exit more gracefully
+ * Script to install on System
+ * Verbose mode
+ * Write tests
