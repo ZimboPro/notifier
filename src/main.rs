@@ -14,10 +14,10 @@ use job_scheduler::{JobScheduler, Job, Schedule};
 use std::time::Duration;
 
 #[cfg(all(unix, not(target_os = "macos")))]
-static SOUND: &str = "message-new-instant";
+static SOUND: &str = "dialog-information";
 
 #[cfg(target_os = "windows")]
-static SOUND: &'static str = "Mail";
+static SOUND: &'static str = "Reminder";
 
 fn check_cron(cron_str: &str) -> bool {
   let cron = Schedule::from_str(cron_str);
