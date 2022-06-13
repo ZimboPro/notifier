@@ -30,9 +30,19 @@ sec   min   hour   day of month   month   day of week   year
 
 More details about the cron structure can be found at https://crates.io/crates/job_scheduler
 
+### Installation
+
+Either run
+`sh install.sh` or `./install.sh`
+OR
+`cargo install --path .`
+
+This will install the executable locally on the system.
+NOTE: This does not setup the executable to run at start up.
+
 ### Support
 
-It is supported on Linux. Windows and MacOS still needs to be tested.
+It is supported on Linux and Windows. MacOS still needs to be tested but should theoretically work.
 
 ### Start Up
 
@@ -41,6 +51,5 @@ A script or instructions to have the executable run at start up still needs to b
 ## TODO
 
  * Exit more gracefully
- * Script to install on System
  * Verbose mode
  * Write tests
