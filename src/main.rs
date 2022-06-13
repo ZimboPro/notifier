@@ -13,9 +13,11 @@ mod job_scheduler;
 use job_scheduler::{JobScheduler, Job, Schedule};
 use std::time::Duration;
 
+// http://0pointer.de/public/sound-naming-spec.html
 #[cfg(all(unix, not(target_os = "macos")))]
 static SOUND: &str = "dialog-information";
 
+// https://allenbenz.github.io/winrt-notification/0_5_0/winrt_notification/enum.Sound.html
 #[cfg(target_os = "windows")]
 static SOUND: &'static str = "Reminder";
 
