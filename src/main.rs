@@ -19,7 +19,7 @@ static SOUND: &str = "dialog-information";
 
 // https://allenbenz.github.io/winrt-notification/0_5_0/winrt_notification/enum.Sound.html
 #[cfg(target_os = "windows")]
-static SOUND: &'static str = "Reminder";
+static SOUND: &str = "Reminder";
 
 fn check_cron(cron_str: &str) -> bool {
   let cron = Schedule::from_str(cron_str);
@@ -36,7 +36,7 @@ fn check_cron(cron_str: &str) -> bool {
         true
       }
       Err(err) => {
-        println!("Cron {} is invalid: {}", cron_str, err.to_string());
+        println!("Cron {} is invalid: {}", cron_str, err);
         false
       }
   }
@@ -52,7 +52,7 @@ fn load_yaml_and_schedule(content: String) {
     for notification in notifications.iter() {
       let label = notification["label"].as_str().unwrap();
       let cron = notification["cron"].as_str().unwrap();
-      if check_cron(&cron) {
+      if check_cron(cron) {
         scheduled = true;
         let schedule: Schedule = cron.parse().unwrap();
         schedules.add(Job::new( schedule, || {
@@ -103,7 +103,7 @@ fn load_file(path: String) {
         load_yaml_and_schedule(content);
       }
       Err(e) => {
-        println!("Err: {}", e.to_string());
+        println!("Err: {}", e);
       }
   }
 }

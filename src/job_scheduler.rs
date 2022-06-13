@@ -88,7 +88,7 @@ fn get_time<T: SystemTime>() -> DateTime<T> {
 /// A schedulable `Job`.
 pub struct Job<'a> {
     schedule: Schedule,
-    run: Box<dyn (FnMut() -> ()) + 'a>,
+    run: Box<dyn (FnMut()) + 'a>,
     last_tick: Option<DateTime<Utc>>,
     last_tick_local: Option<DateTime<Local>>,
     limit_missed_runs: usize,
@@ -107,7 +107,7 @@ impl<'a> Job<'a> {
     pub fn new<T>(schedule: Schedule, run: T) -> Job<'a>
     where
         T: 'a,
-        T: FnMut() -> (),
+        T: FnMut(),
     {
         Job {
             schedule,
@@ -265,7 +265,7 @@ impl<'a> JobScheduler<'a> {
     /// }
     /// ```
     pub fn tick(&mut self) {
-        for mut job in &mut self.jobs {
+        for job in &mut self.jobs {
             job.tick();
         }
     }
@@ -281,7 +281,7 @@ impl<'a> JobScheduler<'a> {
     /// }
     /// ```
     pub fn tick_with_system_time(&mut self) {
-        for mut job in &mut self.jobs {
+        for job in &mut self.jobs {
             job.tick_with_system_time();
         }
     }
