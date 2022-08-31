@@ -1,15 +1,22 @@
 extern crate cron;
 extern crate chrono;
 
-use std::str::FromStr;
+use std::{str::FromStr, path::PathBuf};
 
+use eframe::{run_native, NativeOptions};
+use notifier::Notifier;
 use notify_rust::Notification;
+use yaml::{Notifications, load_file_and_deserialise};
 use std::fs;
 
 mod job_scheduler;
 use job_scheduler::{JobScheduler, Job, Schedule};
 use std::time::Duration;
+use serde::{Serialize, Deserialize};
+use color_eyre::eyre::{Result, self};
+use clap::{Parser};
 mod yaml;
+mod notifier;
 
 // http://0pointer.de/public/sound-naming-spec.html
 #[cfg(all(unix, not(target_os = "macos")))]
@@ -30,7 +37,6 @@ fn check_cron(cron_str: &str) -> bool {
   }
   match cron {
       Ok(_) => {
-
         true
       }
       Err(err) => {
@@ -92,27 +98,43 @@ fn schedule_notifications(notifications: Notifications) {
   }
 }
 
-fn load_file(path: String) {
-  let config_content = fs::read_to_string(path);
-  match config_content {
-      Ok(content) => {
-        load_yaml_and_schedule(content);
-      }
-      Err(e) => {
-        println!("Err: {}", e);
-      }
-  }
+#[derive(Parser, Debug)]
+struct Args {
+   /// Name of the person to greet
+   #[clap(short, long)]
+    gui: bool,
 }
 
-fn main() {
+fn main() ->  color_eyre::eyre::Result<()>{
+  color_eyre::install()?;
+  let args = Args::parse();
   match home::home_dir() {
     Some(path) => {
       let file_path = path.join(".config/notifier.yaml");
       if file_path.exists() {
         let notifications = load_file_and_deserialise(&file_path)?;
+        if args.gui {
+          let options = NativeOptions::default();
+          run_native(
+            "Notifier",
+            options,
+            Box::new(|cc| Box::new(Notifier::new_with_data(cc, notifications))));
+        } else {
           schedule_notifications(notifications);
+        }
+      } else {
+        if args.gui {
+          let options = NativeOptions::default();
+          run_native(
+            "Notifier",
+            options,
+            Box::new(|cc| Box::new(Notifier::new(cc))));
+        } else {
+          println!("'{}' doesn't exist", file_path.to_str().unwrap());
+        }
       }
     },
     None => println!("Impossible to get your home dir!"),
   }
+  Ok(())
 }
