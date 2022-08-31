@@ -1,6 +1,3 @@
-extern crate yaml_rust;
-use yaml_rust::{YamlLoader};
-
 extern crate cron;
 extern crate chrono;
 
@@ -12,6 +9,7 @@ use std::fs;
 mod job_scheduler;
 use job_scheduler::{JobScheduler, Job, Schedule};
 use std::time::Duration;
+mod yaml;
 
 // http://0pointer.de/public/sound-naming-spec.html
 #[cfg(all(unix, not(target_os = "macos")))]
@@ -42,16 +40,14 @@ fn check_cron(cron_str: &str) -> bool {
   }
 }
 
-fn load_yaml_and_schedule(content: String) {
-  let docs = YamlLoader::load_from_str(&content).unwrap();
-  let config = &docs[0];
-  if config["notifications"].is_array() {
-    let notifications = config["notifications"].as_vec().unwrap();
+fn schedule_notifications(notifications: Notifications) {
+
+  if notifications.notifications.len() > 0 {
     let mut schedules = JobScheduler::new();
     let mut scheduled = false;
-    for notification in notifications.iter() {
-      let label = notification["label"].as_str().unwrap();
-      let cron = notification["cron"].as_str().unwrap();
+    for notify in notifications.notifications.iter() {
+      let label = notify.label.as_str();
+      let cron = notify.cron.as_str();
       if check_cron(cron) {
         scheduled = true;
         let schedule: Schedule = cron.parse().unwrap();
@@ -92,7 +88,7 @@ fn load_yaml_and_schedule(content: String) {
       println!("No jobs scheduled");
     }
   } else {
-    println!("'notifications' is not in the configuration or is not an array");
+    println!("No jobs scheduled");
   }
 }
 
@@ -113,9 +109,8 @@ fn main() {
     Some(path) => {
       let file_path = path.join(".config/notifier.yaml");
       if file_path.exists() {
-        load_file(file_path.to_str().unwrap().to_owned());
-      } else {
-        println!("'{}' doesn't exist", file_path.to_str().unwrap());
+        let notifications = load_file_and_deserialise(&file_path)?;
+          schedule_notifications(notifications);
       }
     },
     None => println!("Impossible to get your home dir!"),
