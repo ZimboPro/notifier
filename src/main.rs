@@ -1,20 +1,19 @@
 extern crate cron;
 extern crate chrono;
 
-use std::{str::FromStr, path::PathBuf};
+use std::{str::FromStr};
 
 use eframe::{run_native, NativeOptions};
 use notifier::Notifier;
 use notify_rust::Notification;
 use yaml::{Notifications, load_file_and_deserialise};
-use std::fs;
+
 
 mod job_scheduler;
 use job_scheduler::{JobScheduler, Job, Schedule};
 use std::time::Duration;
-use serde::{Serialize, Deserialize};
-use color_eyre::eyre::{Result, self};
 use clap::{Parser};
+
 mod yaml;
 mod notifier;
 
@@ -48,7 +47,7 @@ fn check_cron(cron_str: &str) -> bool {
 
 fn schedule_notifications(notifications: Notifications) {
 
-  if notifications.notifications.len() > 0 {
+  if !notifications.notifications.is_empty() {
     let mut schedules = JobScheduler::new();
     let mut scheduled = false;
     for notify in notifications.notifications.iter() {
@@ -122,16 +121,14 @@ fn main() ->  color_eyre::eyre::Result<()>{
         } else {
           schedule_notifications(notifications);
         }
+      } else if args.gui {
+        let options = NativeOptions::default();
+        run_native(
+          "Notifier",
+          options,
+          Box::new(|cc| Box::new(Notifier::new(cc))));
       } else {
-        if args.gui {
-          let options = NativeOptions::default();
-          run_native(
-            "Notifier",
-            options,
-            Box::new(|cc| Box::new(Notifier::new(cc))));
-        } else {
-          println!("'{}' doesn't exist", file_path.to_str().unwrap());
-        }
+        println!("'{}' doesn't exist", file_path.to_str().unwrap());
       }
     },
     None => println!("Impossible to get your home dir!"),

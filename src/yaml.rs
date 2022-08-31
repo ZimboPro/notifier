@@ -3,12 +3,12 @@ use std::{path::PathBuf, fs};
 use color_eyre::eyre;
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Notifications {
     pub notifications: Vec<NotificationDetails>
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NotificationDetails {
     pub label: String,
     pub cron: String,
