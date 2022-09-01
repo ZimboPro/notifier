@@ -1,8 +1,8 @@
 use std::{path::PathBuf, str::FromStr};
 
 use chrono::Local;
-use color_eyre::Report;
-use eframe::{App, egui::{CentralPanel, Ui, Window, Context, Button, TextEdit, RichText}, CreationContext};
+
+use eframe::{App, egui::{CentralPanel, Ui, Window, Context, Button, RichText}};
 
 use crate::yaml::{Notifications, NotificationDetails, save_contents};
 use crate::cron::Schedule;
@@ -44,12 +44,8 @@ impl Notifier {
       ui.hyperlink_to("Cron details", "https://crates.io/crates/job_scheduler");
 
       let b = Button::new("Save");
-      let cron = Schedule::from_str(&self.notification_detail.cron.as_str());
-      let valid = if !self.notification_detail.label.is_empty() && cron.is_ok() {
-        true
-      } else {
-        false
-      };
+      let cron = Schedule::from_str(self.notification_detail.cron.as_str());
+      let valid = !self.notification_detail.label.is_empty() && cron.is_ok();
       let b = ui.add_enabled(valid, b);
       if b.enabled() && b.clicked() {
         self.notification_detail.level = "Info".to_string();
@@ -71,10 +67,9 @@ impl Notifier {
   }
 
   fn render_card(&mut self, ui: &mut Ui) {
-    let mut index = 0;
     let mut remove = false;
     let mut del = 0;
-    for noti in &self.notifications.notifications {
+    for (index, noti) in self.notifications.notifications.iter().enumerate() {
         ui.add_space(10.);
         ui.horizontal_top(|ui| {
           let label = RichText::new(noti.label.as_str()).size(20.);
@@ -88,11 +83,11 @@ impl Notifier {
         ui.label(noti.cron.as_str());
         ui.horizontal_top(|ui| {
           ui.label("Next notification at: ");
-          let cron = Schedule::from_str(&noti.cron.as_str());
+          let cron = Schedule::from_str(noti.cron.as_str());
           match cron {
               Ok(job) => {
                 let mut upcoming = job.upcoming(Local::now().timezone());
-                ui.label(upcoming.next().unwrap_or(Local::now()).to_string());
+                ui.label(upcoming.next().unwrap_or_else(Local::now).to_string());
               },
               Err(err) => {
                 ui.label(format!("Error: {}", err));
@@ -101,22 +96,18 @@ impl Notifier {
         });
         ui.add_space(10.);
         ui.separator();
-        index = index + 1;
     }
     if remove {
       self.notifications.notifications.remove(del);
-      match save_contents(&self.path, &self.notifications) {
-        Err(err) => {
-          println!("Error: {}", err);
-        },
-        _ => {}
+      if let Err(err) = save_contents(&self.path, &self.notifications) {
+        println!("Error: {}", err);
       }
     }
   }
 }
 
 impl App for Notifier {
-  fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
+  fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
     CentralPanel::default().show(ctx, |ui| {
       if self.notifications.notifications.is_empty() {
         self.render_add_notification(ctx);
