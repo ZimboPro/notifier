@@ -117,7 +117,7 @@ fn main() ->  color_eyre::eyre::Result<()>{
           run_native(
             "Notifier",
             options,
-            Box::new(|cc| Box::new(Notifier::new_with_data(cc, notifications))));
+            Box::new(|cc| Box::new(Notifier::new_with_data(cc, notifications, file_path))));
         } else {
           schedule_notifications(notifications);
         }
@@ -126,7 +126,7 @@ fn main() ->  color_eyre::eyre::Result<()>{
         run_native(
           "Notifier",
           options,
-          Box::new(|cc| Box::new(Notifier::new(cc))));
+          Box::new(|cc| Box::new(Notifier::new(cc, file_path))));
       } else {
         println!("'{}' doesn't exist", file_path.to_str().unwrap());
       }

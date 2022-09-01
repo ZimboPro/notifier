@@ -8,7 +8,7 @@ pub struct Notifications {
     pub notifications: Vec<NotificationDetails>
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Default, Clone)]
 pub struct NotificationDetails {
     pub label: String,
     pub cron: String,
@@ -22,6 +22,6 @@ pub fn load_file_and_deserialise(path: &PathBuf) -> eyre::Result<Notifications> 
 }
 
 pub fn save_contents(path: &PathBuf, notify: &Notifications) -> eyre::Result<()> {
-  fs::write(path, serde_yaml::to_string(notify)?);
+  fs::write(path, serde_yaml::to_string(notify)?)?;
   Ok(())
 }
