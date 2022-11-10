@@ -2,7 +2,7 @@ use std::{path::PathBuf, str::FromStr};
 
 use chrono::Local;
 
-use eframe::{App, egui::{CentralPanel, Ui, Window, Context, Button, RichText}};
+use eframe::{App, egui::{CentralPanel, Ui, Window, Context, Button, RichText, ScrollArea}};
 
 use crate::yaml::{Notifications, NotificationDetails, save_contents};
 use crate::cron::Schedule;
@@ -67,42 +67,44 @@ impl Notifier {
   }
 
   fn render_card(&mut self, ui: &mut Ui) {
-    let mut remove = false;
-    let mut del = 0;
-    for (index, noti) in self.notifications.notifications.iter().enumerate() {
-        ui.add_space(10.);
-        ui.horizontal_top(|ui| {
-          let label = RichText::new(noti.label.as_str()).size(20.);
-          ui.label(label);
-          let resp = ui.button("Remove");
-          if resp.clicked() {
-            remove = true;
-            del = index;
-          }
-        });
-        ui.label(noti.cron.as_str());
-        ui.horizontal_top(|ui| {
-          ui.label("Next notification at: ");
-          let cron = Schedule::from_str(noti.cron.as_str());
-          match cron {
-              Ok(job) => {
-                let mut upcoming = job.upcoming(Local::now().timezone());
-                ui.label(upcoming.next().unwrap_or_else(Local::now).to_string());
-              },
-              Err(err) => {
-                ui.label(format!("Error: {}", err));
-              }
-          }
-        });
-        ui.add_space(10.);
-        ui.separator();
-    }
-    if remove {
-      self.notifications.notifications.remove(del);
-      if let Err(err) = save_contents(&self.path, &self.notifications) {
-        println!("Error: {}", err);
+    ScrollArea::vertical().show(ui, |ui| {
+      let mut remove = false;
+      let mut del = 0;
+      for (index, noti) in self.notifications.notifications.iter().enumerate() {
+          ui.add_space(10.);
+          ui.horizontal_top(|ui| {
+            let label = RichText::new(noti.label.as_str()).size(20.);
+            ui.label(label);
+            let resp = ui.button("Remove");
+            if resp.clicked() {
+              remove = true;
+              del = index;
+            }
+          });
+          ui.label(noti.cron.as_str());
+          ui.horizontal_top(|ui| {
+            ui.label("Next notification at: ");
+            let cron = Schedule::from_str(noti.cron.as_str());
+            match cron {
+                Ok(job) => {
+                  let mut upcoming = job.upcoming(Local::now().timezone());
+                  ui.label(upcoming.next().unwrap_or_else(Local::now).to_string());
+                },
+                Err(err) => {
+                  ui.label(format!("Error: {}", err));
+                }
+            }
+          });
+          ui.add_space(10.);
+          ui.separator();
       }
-    }
+      if remove {
+        self.notifications.notifications.remove(del);
+        if let Err(err) = save_contents(&self.path, &self.notifications) {
+          println!("Error: {}", err);
+        }
+      }
+    });
   }
 }
 
