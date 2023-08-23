@@ -2,34 +2,44 @@ use std::{path::PathBuf, str::FromStr};
 
 use chrono::Local;
 
-use eframe::{App, egui::{CentralPanel, Ui, Window, Context, Button, RichText, ScrollArea}};
+use eframe::{
+  egui::{Button, CentralPanel, Context, RichText, ScrollArea, Ui, Window},
+  App,
+};
 
-use crate::yaml::{Notifications, NotificationDetails, save_contents};
 use crate::cron::Schedule;
+use crate::yaml::{save_contents, NotificationDetails, Notifications};
 
 #[derive(Default)]
 pub struct Notifier {
   notifications: Notifications,
   notification_detail: NotificationDetails,
   path: PathBuf,
-  add: bool
+  add: bool,
 }
 
 impl Notifier {
   pub fn new(_cc: &eframe::CreationContext<'_>, path: PathBuf) -> Self {
-    Self { path, ..Self::default() }
+    Self {
+      path,
+      ..Self::default()
+    }
   }
 
-  pub fn new_with_data(_cc: &eframe::CreationContext<'_>, notify: Notifications, path: PathBuf) -> Self {
+  pub fn new_with_data(
+    _cc: &eframe::CreationContext<'_>,
+    notify: Notifications,
+    path: PathBuf,
+  ) -> Self {
     Self {
       notifications: notify,
       notification_detail: NotificationDetails::default(),
       path,
-      add: false
+      add: false,
     }
   }
 
-  fn render_add_notification(&mut self, ctx: & Context) {
+  fn render_add_notification(&mut self, ctx: &Context) {
     Window::new("Add a new notification").show(ctx, |ui| {
       ui.label("Add a new notification configuration");
       ui.horizontal_top(|ui| {
@@ -71,32 +81,32 @@ impl Notifier {
       let mut remove = false;
       let mut del = 0;
       for (index, noti) in self.notifications.notifications.iter().enumerate() {
-          ui.add_space(10.);
-          ui.horizontal_top(|ui| {
-            let label = RichText::new(noti.label.as_str()).size(20.);
-            ui.label(label);
-            let resp = ui.button("Remove");
-            if resp.clicked() {
-              remove = true;
-              del = index;
+        ui.add_space(10.);
+        ui.horizontal_top(|ui| {
+          let label = RichText::new(noti.label.as_str()).size(20.);
+          ui.label(label);
+          let resp = ui.button("Remove");
+          if resp.clicked() {
+            remove = true;
+            del = index;
+          }
+        });
+        ui.label(noti.cron.as_str());
+        ui.horizontal_top(|ui| {
+          ui.label("Next notification at: ");
+          let cron = Schedule::from_str(noti.cron.as_str());
+          match cron {
+            Ok(job) => {
+              let mut upcoming = job.upcoming(Local::now().timezone());
+              ui.label(upcoming.next().unwrap_or_else(Local::now).to_string());
             }
-          });
-          ui.label(noti.cron.as_str());
-          ui.horizontal_top(|ui| {
-            ui.label("Next notification at: ");
-            let cron = Schedule::from_str(noti.cron.as_str());
-            match cron {
-                Ok(job) => {
-                  let mut upcoming = job.upcoming(Local::now().timezone());
-                  ui.label(upcoming.next().unwrap_or_else(Local::now).to_string());
-                },
-                Err(err) => {
-                  ui.label(format!("Error: {}", err));
-                }
+            Err(err) => {
+              ui.label(format!("Error: {}", err));
             }
-          });
-          ui.add_space(10.);
-          ui.separator();
+          }
+        });
+        ui.add_space(10.);
+        ui.separator();
       }
       if remove {
         self.notifications.notifications.remove(del);

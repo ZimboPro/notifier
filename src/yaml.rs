@@ -1,18 +1,18 @@
-use std::{path::PathBuf, fs};
+use std::{fs, path::PathBuf};
 
 use color_eyre::eyre;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Notifications {
-    pub notifications: Vec<NotificationDetails>
+  pub notifications: Vec<NotificationDetails>,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Default, Clone)]
 pub struct NotificationDetails {
-    pub label: String,
-    pub cron: String,
-    pub level: String
+  pub label: String,
+  pub cron: String,
+  pub level: String,
 }
 
 pub fn load_file_and_deserialise(path: &PathBuf) -> eyre::Result<Notifications> {

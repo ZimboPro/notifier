@@ -1,23 +1,22 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-extern crate cron;
 extern crate chrono;
+extern crate cron;
 
-use std::{str::FromStr, path::PathBuf};
+use std::{path::PathBuf, str::FromStr};
 
+use auto_launch::AutoLaunch;
 use eframe::{run_native, NativeOptions};
 use notifier::Notifier;
 use notify_rust::Notification;
-use yaml::{Notifications, load_file_and_deserialise};
-use auto_launch::AutoLaunch;
-
+use yaml::{load_file_and_deserialise, Notifications};
 
 mod job_scheduler;
-use job_scheduler::{JobScheduler, Job, Schedule};
+use clap::Parser;
+use job_scheduler::{Job, JobScheduler, Schedule};
 use std::time::Duration;
-use clap::{Parser};
 
-mod yaml;
 mod notifier;
+mod yaml;
 
 // http://0pointer.de/public/sound-naming-spec.html
 #[cfg(all(unix, not(target_os = "macos")))]
@@ -31,24 +30,24 @@ fn check_cron(cron_str: &str) -> bool {
   let cron = Schedule::from_str(cron_str);
   let variables = cron_str.split(' ').count();
   if variables != 7 {
-    println!("Cron '{}' is invalid: There needs to be 7 variables", cron_str);
+    println!(
+      "Cron '{}' is invalid: There needs to be 7 variables",
+      cron_str
+    );
     println!("e.g. {{sec}}   {{min}}   {{hour}}   {{day of month}}   {{month}}   {{day of week}}   {{year}}");
     println!("See https://crates.io/crates/job_scheduler for more details");
     return false;
   }
   match cron {
-      Ok(_) => {
-        true
-      }
-      Err(err) => {
-        println!("Cron {} is invalid: {}", cron_str, err);
-        false
-      }
+    Ok(_) => true,
+    Err(err) => {
+      println!("Cron {} is invalid: {}", cron_str, err);
+      false
+    }
   }
 }
 
 fn schedule_notifications(notifications: Notifications) {
-
   if !notifications.notifications.is_empty() {
     let mut schedules = JobScheduler::new();
     let mut scheduled = false;
@@ -58,8 +57,7 @@ fn schedule_notifications(notifications: Notifications) {
       if check_cron(cron) {
         scheduled = true;
         let schedule: Schedule = cron.parse().unwrap();
-        schedules.add(Job::new( schedule, || {
-
+        schedules.add(Job::new(schedule, || {
           #[cfg(all(unix, not(target_os = "macos")))]
           Notification::new()
             .body(label)
@@ -67,15 +65,15 @@ fn schedule_notifications(notifications: Notifications) {
             .show()
             .unwrap()
             .wait_for_action(|action| match action {
-              _ => ()
+              _ => (),
             });
-            #[cfg(target_os = "macos")]
+          #[cfg(target_os = "macos")]
           Notification::new()
             .body(label)
             .show()
             .unwrap()
             .wait_for_action(|action| match action {
-              _ => ()
+              _ => (),
             });
           #[cfg(target_os = "windows")]
           Notification::new()
@@ -101,28 +99,29 @@ fn schedule_notifications(notifications: Notifications) {
 
 #[derive(Parser, Debug)]
 struct Args {
-   /// Name of the person to greet
-   #[clap(short, long)]
-    gui: bool,
+  /// Name of the person to greet
+  #[clap(short, long)]
+  gui: bool,
 }
 
 struct AppDetails {
   path: PathBuf,
-  name: String
+  name: String,
 }
 
 fn get_app_name() -> color_eyre::eyre::Result<AppDetails> {
   let path = std::env::current_exe().unwrap();
   let name = String::from(path.file_name().unwrap().to_str().unwrap());
-  Ok(AppDetails {
-    path,
-    name
-  })
+  Ok(AppDetails { path, name })
 }
 
-fn main() ->  color_eyre::eyre::Result<()>{
+fn main() -> color_eyre::eyre::Result<()> {
   let app_details = get_app_name()?;
-  let auto = AutoLaunch::new(app_details.name.as_str(), &app_details.path.as_os_str().to_string_lossy().to_owned(), &[] as &[&str]);
+  let auto = AutoLaunch::new(
+    app_details.name.as_str(),
+    &app_details.path.as_os_str().to_string_lossy().to_owned(),
+    &[] as &[&str],
+  );
   auto.enable()?;
   color_eyre::install()?;
   let args = Args::parse();
@@ -136,7 +135,8 @@ fn main() ->  color_eyre::eyre::Result<()>{
           run_native(
             "Notifier",
             options,
-            Box::new(|cc| Box::new(Notifier::new_with_data(cc, notifications, file_path))));
+            Box::new(|cc| Box::new(Notifier::new_with_data(cc, notifications, file_path))),
+          );
         } else {
           schedule_notifications(notifications);
         }
@@ -145,11 +145,12 @@ fn main() ->  color_eyre::eyre::Result<()>{
         run_native(
           "Notifier",
           options,
-          Box::new(|cc| Box::new(Notifier::new(cc, file_path))));
+          Box::new(|cc| Box::new(Notifier::new(cc, file_path))),
+        );
       } else {
         println!("'{}' doesn't exist", file_path.to_str().unwrap());
       }
-    },
+    }
     None => println!("Impossible to get your home dir!"),
   }
   Ok(())
