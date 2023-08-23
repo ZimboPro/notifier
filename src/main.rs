@@ -2,12 +2,13 @@
 extern crate cron;
 extern crate chrono;
 
-use std::{str::FromStr};
+use std::{str::FromStr, path::PathBuf};
 
 use eframe::{run_native, NativeOptions};
 use notifier::Notifier;
 use notify_rust::Notification;
 use yaml::{Notifications, load_file_and_deserialise};
+use auto_launch::AutoLaunch;
 
 
 mod job_scheduler;
@@ -105,7 +106,24 @@ struct Args {
     gui: bool,
 }
 
+struct AppDetails {
+  path: PathBuf,
+  name: String
+}
+
+fn get_app_name() -> color_eyre::eyre::Result<AppDetails> {
+  let path = std::env::current_exe().unwrap();
+  let name = String::from(path.file_name().unwrap().to_str().unwrap());
+  Ok(AppDetails {
+    path,
+    name
+  })
+}
+
 fn main() ->  color_eyre::eyre::Result<()>{
+  let app_details = get_app_name()?;
+  let auto = AutoLaunch::new(app_details.name.as_str(), &app_details.path.as_os_str().to_string_lossy().to_owned(), &[] as &[&str]);
+  auto.enable()?;
   color_eyre::install()?;
   let args = Args::parse();
   match home::home_dir() {
