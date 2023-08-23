@@ -69,7 +69,8 @@ impl Notifier {
             },
             Err(err) => {
               // Some form of a toast or notification
-              println!("Error saving the notifications: {}", err);
+              eprintln!("Error saving to {}", self.path.display());
+              eprintln!("Error saving the notifications: {}", err);
             }
         };
       }

@@ -14,10 +14,10 @@ The file is `config.yaml` and should be placed in `$HOME/.config/`
 ---
 notifications:
 - label: Stretch
-  cron: 0 0 7-15 * * 1-5 *
+  cron: 0 0 7-18 * * 1-5 *
   level: "Info"
 - label: Drink water
-  cron: 0 5 7-15 * * 1-5 *
+  cron: 0 5 7-18 * * 1-5 *
   level: "Info"
 
 ```

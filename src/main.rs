@@ -127,7 +127,8 @@ fn main() -> color_eyre::eyre::Result<()> {
   let args = Args::parse();
   match home::home_dir() {
     Some(path) => {
-      let file_path = path.join(".config/notifier.yaml");
+      let config_dir = path.join(".config");
+      let file_path = config_dir.join("notifier.yaml");
       if file_path.exists() {
         let notifications = load_file_and_deserialise(&file_path)?;
         if args.gui {
@@ -142,6 +143,9 @@ fn main() -> color_eyre::eyre::Result<()> {
         }
       } else if args.gui {
         let options = NativeOptions::default();
+        if !config_dir.exists() {
+          std::fs::create_dir_all(config_dir)?;
+        }
         run_native(
           "Notifier",
           options,
