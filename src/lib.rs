@@ -26,7 +26,7 @@ pub fn get_config_path() -> Result<PathBuf, Errors> {
       let config_dir = home_dir.join(".config");
       let config_path = config_dir.join("notifier.yaml");
       if !config_dir.is_dir() {
-        let _ = std::fs::create_dir_all(config_dir).map_err(|_| Errors::CouldNotCreateConfigDir)?;
+        std::fs::create_dir_all(config_dir).map_err(|_| Errors::CouldNotCreateConfigDir)?;
       }
       Ok(config_path)
     }

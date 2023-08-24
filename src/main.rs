@@ -2,11 +2,11 @@
 extern crate chrono;
 extern crate cron;
 
-use std::{path::PathBuf, str::FromStr};
+use std::path::PathBuf;
 
 use auto_launch::AutoLaunch;
 use eframe::{run_native, NativeOptions};
-use notifier::{load_file_and_deserialise, schedule_notifications, Errors, Notifications};
+use notifier::{load_file_and_deserialise, schedule_notifications, Errors};
 mod notifier_gui;
 use notifier_gui::Notifier;
 use notify_rust::Notification;
