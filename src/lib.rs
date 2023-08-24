@@ -69,10 +69,13 @@ where
       if check_cron(cron) {
         scheduled = true;
         let schedule: Schedule = cron.parse().unwrap();
-        schedules.add(Job::new(schedule, || {
+        let _uuid = schedules.add(Job::new(schedule, || {
           let notification_details = notify.clone();
           let _ = f(&notification_details);
         }));
+        // TODO add to global hash to add/remove
+        // TODO add function to remove the job
+        // TODO add hash derive trait to NotificationDetails
       }
     }
     if scheduled {
