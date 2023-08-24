@@ -1,7 +1,7 @@
 use std::{fs, path::PathBuf};
 
-use color_eyre::eyre;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Notifications {
@@ -15,13 +15,35 @@ pub struct NotificationDetails {
   pub level: String,
 }
 
-pub fn load_file_and_deserialise(path: &PathBuf) -> eyre::Result<Notifications> {
-  let config_content = fs::read_to_string(path)?;
-  let notifications: Notifications = serde_yaml::from_str(&config_content)?;
+#[derive(Debug, Error)]
+pub enum YamlErrors {
+  #[error("Error trying to read the config file")]
+  CouldNotReadConfigFile,
+  #[error("Error trying to deserialize the config file")]
+  CouldNotDeserializeFile,
+  #[error("Error trying to save to the config file")]
+  CouldNotSaveToFile,
+}
+
+pub fn load_contents(path: &PathBuf) -> Result<String, YamlErrors> {
+  std::fs::read_to_string(path).map_err(|_| YamlErrors::CouldNotReadConfigFile)
+}
+
+pub fn load_file_and_deserialise(path: &PathBuf) -> Result<Notifications, YamlErrors> {
+  let config_content = load_contents(path)?;
+  if config_content.trim().is_empty() {
+    return Ok(Notifications::default());
+  }
+  let notifications: Notifications =
+    serde_yaml::from_str(&config_content).map_err(|_| YamlErrors::CouldNotDeserializeFile)?;
   Ok(notifications)
 }
 
-pub fn save_contents(path: &PathBuf, notify: &Notifications) -> eyre::Result<()> {
-  fs::write(path, serde_yaml::to_string(notify)?)?;
+pub fn save_contents(path: &PathBuf, notify: &Notifications) -> Result<(), YamlErrors> {
+  fs::write(
+    path,
+    serde_yaml::to_string(notify).map_err(|_| YamlErrors::CouldNotSaveToFile)?,
+  )
+  .map_err(|_| YamlErrors::CouldNotSaveToFile)?;
   Ok(())
 }

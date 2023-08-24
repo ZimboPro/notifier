@@ -2,13 +2,12 @@ use std::{path::PathBuf, str::FromStr};
 
 use chrono::Local;
 
+use cron::Schedule;
 use eframe::{
   egui::{Button, CentralPanel, Context, RichText, ScrollArea, Ui, Window},
   App,
 };
-
-use crate::cron::Schedule;
-use crate::yaml::{save_contents, NotificationDetails, Notifications};
+use notifier::{save_contents, NotificationDetails, Notifications};
 
 #[derive(Default)]
 pub struct Notifier {
