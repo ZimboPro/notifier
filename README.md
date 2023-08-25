@@ -50,6 +50,12 @@ A script or instructions to have the executable run at start up still needs to b
 
 ## TODO
 
- * Exit more gracefully
- * Verbose mode
- * Write tests
+ - [ ] Exit more gracefully
+ - [ ] Verbose mode
+ - [ ] Write tests
+ - [ ] Allow for more control over jobs and reflect without needing to restart
+    - [ ] Delete jobs
+    - [ ] Add new new jobs
+    - [ ] Edit jobs
+ - [ ] Autolaunch
+ - [ ] System tray
