@@ -22,7 +22,7 @@ notifications:
 
 ```
 
-The cron strucutre is
+The cron structure is
 ```
 sec   min   hour   day of month   month   day of week   year
 *     *     *      *              *       *             *
@@ -57,5 +57,18 @@ A script or instructions to have the executable run at start up still needs to b
     - [ ] Delete jobs
     - [ ] Add new new jobs
     - [ ] Edit jobs
- - [ ] Autolaunch
- - [ ] System tray
+ - [x] Auto-launch
+ - [ ] Alarm
+    - [ ] Store favourite alarms
+ - [ ] Timer
+    - [ ] Store favourite timers
+
+## Decisions
+
+### No System Tray
+
+Egui is able to have a system tray but the loop is not active once hidden. The Cron job requires a infinite loop to compare the current time to the Cron expression. To allow for this, either a separate thread needs to be used to run the Cron jobs or it should be part of the GUI loop.
+
+To simplify the updating, editing and deleting on Cron jobs in the same session, it is better to use the GUI loop instead.
+
+A consequence of this decision is that the window will always require to be opened and will open at start up.
