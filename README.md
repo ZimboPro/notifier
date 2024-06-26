@@ -52,11 +52,12 @@ A script or instructions to have the executable run at start up still needs to b
 
  - [ ] Exit more gracefully
  - [ ] Verbose mode
+ - [ ] Toasts instead of printing to console
  - [ ] Write tests
- - [ ] Allow for more control over jobs and reflect without needing to restart
-    - [ ] Delete jobs
-    - [ ] Add new new jobs
-    - [ ] Edit jobs
+ - [x] Allow for more control over jobs and reflect without needing to restart
+    - [x] Delete jobs
+    - [x] Add new new jobs
+    - [x] Edit jobs
  - [x] Auto-launch
  - [ ] Alarm
     - [ ] Store favourite alarms
