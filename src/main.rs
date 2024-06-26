@@ -23,10 +23,11 @@ fn get_app_name() -> color_eyre::eyre::Result<AppDetails> {
   Ok(AppDetails { path, name })
 }
 
-fn enable_auto_launch(app_details: &AppDetails) -> color_eyre::eyre::Result<()> {
-  let auto = AutoLaunch::new(
+fn enable_auto_launch() -> color_eyre::eyre::Result<()> {
+  let app_details = get_app_name()?;
+  let auto: AutoLaunch = AutoLaunch::new(
     app_details.name.as_str(),
-    &app_details.path.as_os_str().to_string_lossy().to_owned(),
+    &app_details.path.as_os_str().to_string_lossy(),
     &[] as &[&str],
   );
   if !auto.is_enabled()? {
@@ -37,8 +38,7 @@ fn enable_auto_launch(app_details: &AppDetails) -> color_eyre::eyre::Result<()> 
 
 fn main() -> color_eyre::eyre::Result<()> {
   color_eyre::install()?;
-  let app_details = get_app_name()?;
-  enable_auto_launch(&app_details)?;
+  enable_auto_launch()?;
   match home::home_dir() {
     Some(path) => {
       let config_dir = path.join(".config");

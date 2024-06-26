@@ -95,10 +95,6 @@ impl SystemTime for Local {
   }
 }
 
-fn get_time<T: SystemTime>() -> DateTime<T> {
-  T::now()
-}
-
 /// A schedulable `Job`.
 pub struct Job {
   schedule: Schedule,
