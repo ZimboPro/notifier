@@ -294,8 +294,8 @@ impl JobScheduler {
       }
     }
 
-    if found_index.is_some() {
-      self.jobs.remove(found_index.unwrap());
+    if let Some(index) = found_index {
+      self.jobs.remove(index);
     }
 
     found_index.is_some()
