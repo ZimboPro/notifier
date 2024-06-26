@@ -1,8 +1,9 @@
 {
-    "cSpell.words": [
-        "chrono",
-        "eframe",
-        "egui",
-        "timezone"
-    ]
+  "cSpell.words": [
+    "chrono",
+    "eframe",
+    "egui",
+    "timezone"
+  ],
+  "editor.formatOnSave": true
 }
