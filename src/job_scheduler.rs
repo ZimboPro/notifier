@@ -62,7 +62,18 @@ extern crate uuid;
 
 use chrono::{offset, DateTime, Duration, Local, TimeZone, Utc};
 pub use cron::Schedule;
+use notify_rust::Notification;
 pub use uuid::Uuid;
+
+use crate::Errors;
+
+// http://0pointer.de/public/sound-naming-spec.html
+#[cfg(all(unix, not(target_os = "macos")))]
+static SOUND: &str = "dialog-information";
+
+// https://allenbenz.github.io/winrt-notification/0_5_0/winrt_notification/enum.Sound.html
+#[cfg(target_os = "windows")]
+static SOUND: &str = "Reminder";
 
 pub trait SystemTime
 where
@@ -89,16 +100,16 @@ fn get_time<T: SystemTime>() -> DateTime<T> {
 }
 
 /// A schedulable `Job`.
-pub struct Job<'a> {
+pub struct Job {
   schedule: Schedule,
-  run: Box<dyn (FnMut()) + 'a>,
   last_tick: Option<DateTime<Utc>>,
   last_tick_local: Option<DateTime<Local>>,
   limit_missed_runs: usize,
+  label: String,
   job_id: Uuid,
 }
 
-impl<'a> Job<'a> {
+impl Job {
   /// Create a new job.
   ///
   /// ```rust,ignore
@@ -107,18 +118,43 @@ impl<'a> Job<'a> {
   /// let s: Schedule = "0 15 6,8,10 * Mar,Jun Fri 2017".into().unwrap();
   /// Job::new(s, || println!("I have a complex schedule...") );
   /// ```
-  pub fn new<T>(schedule: Schedule, run: T) -> Job<'a>
-  where
-    T: 'a,
-    T: FnMut(),
-  {
+  pub fn new(schedule: Schedule, label: String) -> Job {
     Job {
+      label,
       schedule,
-      run: Box::new(run),
       last_tick: None,
       last_tick_local: None,
       limit_missed_runs: 1,
       job_id: Uuid::new_v4(),
+    }
+  }
+
+  fn display_notification(&self) {
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let res = Notification::new()
+      .body(self.label.as_str())
+      .sound_name(SOUND)
+      .show()
+      .map_err(|e| Errors::NotificationError(e.to_string()))?
+      .wait_for_action(|action| match action {
+        _ => (),
+      });
+    #[cfg(target_os = "macos")]
+    let res = Notification::new()
+      .body(self.label.as_str())
+      .show()
+      .map_err(|e| Errors::NotificationError(e.to_string()))?
+      .wait_for_action(|action| match action {
+        _ => (),
+      });
+    #[cfg(target_os = "windows")]
+    let res = Notification::new()
+      .body(self.label.as_str())
+      .sound_name(SOUND)
+      .show()
+      .map_err(|e| Errors::NotificationError(e.to_string()));
+    if let Err(e) = res {
+      eprintln!("Error displaying notification: {}", e);
     }
   }
 
@@ -137,14 +173,14 @@ impl<'a> Job<'a> {
         if event > now {
           break;
         }
-        (self.run)();
+        self.display_notification();
       }
     } else {
       for event in self.schedule.after(&self.last_tick.unwrap()) {
         if event > now {
           break;
         }
-        (self.run)();
+        self.display_notification();
       }
     }
 
@@ -166,14 +202,14 @@ impl<'a> Job<'a> {
         if event > now {
           break;
         }
-        (self.run)();
+        self.display_notification();
       }
     } else {
       for event in self.schedule.after(&self.last_tick_local.unwrap()) {
         if event > now {
           break;
         }
-        (self.run)();
+        self.display_notification();
       }
     }
 
@@ -207,13 +243,13 @@ impl<'a> Job<'a> {
 
 #[derive(Default)]
 /// The JobScheduler contains and executes the scheduled jobs.
-pub struct JobScheduler<'a> {
-  jobs: Vec<Job<'a>>,
+pub struct JobScheduler {
+  jobs: Vec<Job>,
 }
 
-impl<'a> JobScheduler<'a> {
+impl JobScheduler {
   /// Create a new `JobScheduler`.
-  pub fn new() -> JobScheduler<'a> {
+  pub fn new() -> JobScheduler {
     JobScheduler { jobs: Vec::new() }
   }
 
@@ -225,7 +261,7 @@ impl<'a> JobScheduler<'a> {
   ///     println!("I get executed every 10 seconds!");
   /// }));
   /// ```
-  pub fn add(&mut self, job: Job<'a>) -> Uuid {
+  pub fn add(&mut self, job: Job) -> Uuid {
     let job_id = job.job_id;
     self.jobs.push(job);
 

@@ -7,7 +7,16 @@ use eframe::{
   egui::{Button, CentralPanel, Context, RichText, ScrollArea, Ui, Window},
   App,
 };
-use notifier::{save_contents, NotificationDetails, Notifications};
+use notifier::{check_cron, save_contents, NotificationDetails, Notifications};
+
+use crate::job_scheduler::{Job, JobScheduler};
+
+#[derive(Debug)]
+pub struct Alarm {
+  start_time: chrono::Local,
+  duration: chrono::Duration,
+  end_time: chrono::Local,
+}
 
 #[derive(Default)]
 pub struct Notifier {
@@ -15,6 +24,8 @@ pub struct Notifier {
   notification_detail: NotificationDetails,
   path: PathBuf,
   add: bool,
+  alarms: Vec<Alarm>,
+  schedules: JobScheduler,
 }
 
 impl Notifier {
@@ -35,6 +46,8 @@ impl Notifier {
       notification_detail: NotificationDetails::default(),
       path,
       add: false,
+      alarms: Vec::new(),
+      schedules: JobScheduler::new(),
     }
   }
 
@@ -109,6 +122,11 @@ impl Notifier {
         ui.separator();
       }
       if remove {
+        let uuid = self.notifications.notifications[del]
+          .job_id
+          .as_ref()
+          .unwrap();
+        self.schedules.remove(uuid.to_owned());
         self.notifications.notifications.remove(del);
         if let Err(err) = save_contents(&self.path, &self.notifications) {
           println!("Error: {}", err);
@@ -116,17 +134,34 @@ impl Notifier {
       }
     });
   }
+
+  fn add_and_tick_schedules(&mut self) {
+    if !self.notifications.notifications.is_empty() {
+      for notify in self.notifications.notifications.iter_mut() {
+        if notify.job_id.is_none() {
+          let cron = notify.cron.as_str();
+          if check_cron(cron) {
+            let schedule: Schedule = cron.parse().unwrap();
+            let uuid = self.schedules.add(Job::new(schedule, notify.label.clone()));
+            notify.job_id = Some(uuid);
+          }
+        }
+      }
+      self.schedules.tick_with_system_time();
+    }
+  }
 }
 
 impl App for Notifier {
   fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
+    self.add_and_tick_schedules();
     CentralPanel::default().show(ctx, |ui| {
       if self.notifications.notifications.is_empty() {
         self.render_add_notification(ctx);
       } else {
         self.render_card(ui);
-        let resp = ui.button("Add");
-        if resp.clicked() {
+        let btn = ui.button("Add");
+        if btn.clicked() {
           self.add = true;
         }
         if self.add {

@@ -3,7 +3,6 @@ mod yaml;
 use std::{path::PathBuf, str::FromStr};
 
 use cron::Schedule;
-use job_scheduler::{Job, JobScheduler};
 use thiserror::Error;
 pub use yaml::{load_file_and_deserialise, save_contents};
 pub use yaml::{NotificationDetails, Notifications};
@@ -34,7 +33,7 @@ pub fn get_config_path() -> Result<PathBuf, Errors> {
   }
 }
 
-fn check_cron(cron_str: &str) -> bool {
+pub fn check_cron(cron_str: &str) -> bool {
   let cron = Schedule::from_str(cron_str);
   let variables = cron_str.split(' ').count();
   if variables != 7 {
@@ -51,40 +50,6 @@ fn check_cron(cron_str: &str) -> bool {
     Err(err) => {
       println!("Cron {} is invalid: {}", cron_str, err);
       false
-    }
-  }
-}
-
-pub fn schedule_notifications<F>(notifications: Notifications, f: F)
-where
-  F: Fn(&NotificationDetails) -> Result<(), Errors>,
-{
-  if notifications.notifications.is_empty() {
-    println!("No jobs scheduled");
-  } else {
-    let mut schedules = JobScheduler::new();
-    let mut scheduled = false;
-    for notify in notifications.notifications.iter() {
-      let cron = notify.cron.as_str();
-      if check_cron(cron) {
-        scheduled = true;
-        let schedule: Schedule = cron.parse().unwrap();
-        let _uuid = schedules.add(Job::new(schedule, || {
-          let notification_details = notify.clone();
-          let _ = f(&notification_details);
-        }));
-        // TODO add to global hash to add/remove
-        // TODO add function to remove the job
-        // TODO add hash derive trait to NotificationDetails
-      }
-    }
-    if scheduled {
-      loop {
-        schedules.tick_with_system_time();
-        std::thread::sleep(std::time::Duration::from_millis(500));
-      }
-    } else {
-      println!("No jobs scheduled");
     }
   }
 }

@@ -2,17 +2,20 @@ use std::{fs, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use uuid::Uuid;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Notifications {
   pub notifications: Vec<NotificationDetails>,
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Default, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Default, Clone, Hash)]
 pub struct NotificationDetails {
   pub label: String,
   pub cron: String,
   pub level: String,
+  #[serde(skip)]
+  pub job_id: Option<Uuid>,
 }
 
 #[derive(Debug, Error)]
