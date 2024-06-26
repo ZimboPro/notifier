@@ -134,7 +134,8 @@ impl Job {
       .map_err(|e| Errors::NotificationError(e.to_string()))?
       .wait_for_action(|action| match action {
         _ => (),
-      })
+      });
+    Ok(())
   }
 
   #[cfg(target_os = "macos")]
@@ -145,7 +146,8 @@ impl Job {
       .map_err(|e| Errors::NotificationError(e.to_string()))?
       .wait_for_action(|action| match action {
         _ => (),
-      })
+      });
+    Ok(())
   }
 
   #[cfg(target_os = "windows")]
