@@ -12,11 +12,9 @@ chrono = "0.4.19"
 # job_scheduler = "1.2.1"
 home = "0.5.3"
 uuid = { version = "0.8", features = ["v4"] }
-clap = { version = "3.2.19", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
 eframe = "0.27.2"
 color-eyre = "0.6.2"
-notify = "5.0.0"
 auto-launch = "0.4.0"
 thiserror = "1.0.47"
