@@ -126,44 +126,35 @@ impl Job {
   }
 
   #[cfg(all(unix, not(target_os = "macos")))]
-  fn display_notification(&self) {
-    let res = Notification::new()
+  fn display_notification(&self) -> Result<(), Errors> {
+    Notification::new()
       .body(self.label.as_str())
       .sound_name(SOUND)
       .show()
       .map_err(|e| Errors::NotificationError(e.to_string()))?
       .wait_for_action(|action| match action {
         _ => (),
-      });
-    if let Err(e) = res {
-      eprintln!("Error displaying notification: {}", e);
-    }
+      })
   }
 
   #[cfg(target_os = "macos")]
-  fn display_notification(&self) {
-    let res = Notification::new()
+  fn display_notification(&self) -> Result<(), Errors> {
+    Notification::new()
       .body(self.label.as_str())
       .show()
       .map_err(|e| Errors::NotificationError(e.to_string()))?
       .wait_for_action(|action| match action {
         _ => (),
-      });
-    if let Err(e) = res {
-      eprintln!("Error displaying notification: {}", e);
-    }
+      })
   }
 
   #[cfg(target_os = "windows")]
-  fn display_notification(&self) {
-    let res = Notification::new()
+  fn display_notification(&self) -> Result<(), Errors> {
+    Notification::new()
       .body(self.label.as_str())
       .sound_name(SOUND)
       .show()
-      .map_err(|e| Errors::NotificationError(e.to_string()));
-    if let Err(e) = res {
-      eprintln!("Error displaying notification: {}", e);
-    }
+      .map_err(|e| Errors::NotificationError(e.to_string()))
   }
 
   fn tick(&mut self) {
@@ -181,14 +172,18 @@ impl Job {
         if event > now {
           break;
         }
-        self.display_notification();
+        if let Err(e) = self.display_notification() {
+          eprintln!("Error displaying notification: {}", e);
+        }
       }
     } else {
       for event in self.schedule.after(&self.last_tick.unwrap()) {
         if event > now {
           break;
         }
-        self.display_notification();
+        if let Err(e) = self.display_notification() {
+          eprintln!("Error displaying notification: {}", e);
+        }
       }
     }
 
@@ -210,14 +205,18 @@ impl Job {
         if event > now {
           break;
         }
-        self.display_notification();
+        if let Err(e) = self.display_notification() {
+          eprintln!("Error displaying notification: {}", e);
+        }
       }
     } else {
       for event in self.schedule.after(&self.last_tick_local.unwrap()) {
         if event > now {
           break;
         }
-        self.display_notification();
+        if let Err(e) = self.display_notification() {
+          eprintln!("Error displaying notification: {}", e);
+        }
       }
     }
 
