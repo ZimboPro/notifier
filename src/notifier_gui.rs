@@ -73,8 +73,19 @@ impl Notifier {
       let valid = !self.notification_detail.label.is_empty() && cron.is_ok();
       let b = ui.add_enabled(valid, b);
       if b.enabled() && b.clicked() {
-        self.notification_detail.level = "Info".to_string();
-        self.notifications.notifications.push(self.notification_detail.clone());
+        if let Some(uuid) = self.notification_detail.job_id {
+          self.schedules.remove(uuid);
+          self.notifications.notifications.iter_mut().for_each(|notify| {
+            if notify.job_id == self.notification_detail.job_id {
+              notify.label = self.notification_detail.label.clone();
+              notify.cron = self.notification_detail.cron.clone();
+              notify.job_id = None;
+            }
+          });
+        } else {
+          self.notification_detail.level = "Info".to_string();
+          self.notifications.notifications.push(self.notification_detail.clone());
+        }
         self.notification_detail = NotificationDetails::default();
         let result = save_contents(&self.path, &self.notifications);
         match result {
@@ -95,22 +106,28 @@ impl Notifier {
   fn render_card(&mut self, ui: &mut Ui) {
     ScrollArea::vertical().show(ui, |ui| {
       let mut remove = false;
-      let mut del = 0;
-      for (index, noti) in self.notifications.notifications.iter().enumerate() {
+      let mut add = false;
+      let mut selected_index = 0;
+      for (index, notification) in self.notifications.notifications.iter().enumerate() {
         ui.add_space(10.);
         ui.horizontal_top(|ui| {
-          let label = RichText::new(noti.label.as_str()).size(20.);
+          let label = RichText::new(notification.label.as_str()).size(20.);
           ui.label(label);
-          let resp = ui.button("Remove");
-          if resp.clicked() {
+          let btn = ui.button("Remove");
+          if btn.clicked() {
             remove = true;
-            del = index;
+            selected_index = index;
+          }
+          let btn = ui.button("Edit");
+          if btn.clicked() {
+            add = true;
+            selected_index = index;
           }
         });
-        ui.label(noti.cron.as_str());
+        ui.label(notification.cron.as_str());
         ui.horizontal_top(|ui| {
           ui.label("Next notification at: ");
-          let cron = Schedule::from_str(noti.cron.as_str());
+          let cron = Schedule::from_str(notification.cron.as_str());
           match cron {
             Ok(job) => {
               let mut upcoming = job.upcoming(Local::now().timezone());
@@ -125,15 +142,19 @@ impl Notifier {
         ui.separator();
       }
       if remove {
-        let uuid = self.notifications.notifications[del]
+        let uuid = self.notifications.notifications[selected_index]
           .job_id
           .as_ref()
           .unwrap();
         self.schedules.remove(uuid.to_owned());
-        self.notifications.notifications.remove(del);
+        self.notifications.notifications.remove(selected_index);
         if let Err(err) = save_contents(&self.path, &self.notifications) {
           println!("Error: {}", err);
         }
+      }
+      if add {
+        self.add = true;
+        self.notification_detail = self.notifications.notifications[selected_index].clone();
       }
     });
   }

@@ -2,23 +2,28 @@
 extern crate chrono;
 extern crate cron;
 
+#[cfg(not(debug_assertions))]
 use std::path::PathBuf;
 
+#[cfg(not(debug_assertions))]
 use auto_launch::AutoLaunch;
 use eframe::{run_native, NativeOptions};
 use notifier::{load_file_and_deserialise, notifier_gui::Notifier};
 
+#[cfg(not(debug_assertions))]
 struct AppDetails {
   path: PathBuf,
   name: String,
 }
 
+#[cfg(not(debug_assertions))]
 fn get_app_name() -> color_eyre::eyre::Result<AppDetails> {
   let path = std::env::current_exe().unwrap();
   let name = String::from(path.file_name().unwrap().to_str().unwrap());
   Ok(AppDetails { path, name })
 }
 
+#[cfg(not(debug_assertions))]
 fn enable_auto_launch() -> color_eyre::eyre::Result<()> {
   let app_details = get_app_name()?;
   let auto: AutoLaunch = AutoLaunch::new(
@@ -33,15 +38,24 @@ fn enable_auto_launch() -> color_eyre::eyre::Result<()> {
 }
 
 fn main() -> color_eyre::eyre::Result<()> {
+  #[cfg(not(debug_assertions))]
+  let res = enable_auto_launch();
   color_eyre::install()?;
-  enable_auto_launch()?;
+  #[cfg(not(debug_assertions))]
+  if res.is_err() {
+    return res;
+  }
   match home::home_dir() {
     Some(path) => {
       let config_dir = path.join(".config");
       if !config_dir.exists() {
         std::fs::create_dir_all(&config_dir)?;
       }
+      #[cfg(not(debug_assertions))]
       let file_path = config_dir.join("notifier.yaml");
+      #[cfg(debug_assertions)]
+      let file_path = std::path::Path::new("notifier.yaml").to_path_buf();
+
       if file_path.exists() {
         let notifications = load_file_and_deserialise(&file_path)?;
         let options = NativeOptions::default();
