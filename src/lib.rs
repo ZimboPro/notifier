@@ -1,4 +1,5 @@
 mod job_scheduler;
+pub mod notifier_gui;
 mod yaml;
 use std::{path::PathBuf, str::FromStr};
 

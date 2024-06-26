@@ -6,11 +6,7 @@ use std::path::PathBuf;
 
 use auto_launch::AutoLaunch;
 use eframe::{run_native, NativeOptions};
-use notifier::{load_file_and_deserialise, Errors};
-mod notifier_gui;
-use notifier_gui::Notifier;
-
-mod job_scheduler;
+use notifier::{load_file_and_deserialise, notifier_gui::Notifier};
 
 struct AppDetails {
   path: PathBuf,

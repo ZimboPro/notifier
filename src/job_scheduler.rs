@@ -125,8 +125,8 @@ impl Job {
     }
   }
 
+  #[cfg(all(unix, not(target_os = "macos")))]
   fn display_notification(&self) {
-    #[cfg(all(unix, not(target_os = "macos")))]
     let res = Notification::new()
       .body(self.label.as_str())
       .sound_name(SOUND)
@@ -135,7 +135,13 @@ impl Job {
       .wait_for_action(|action| match action {
         _ => (),
       });
-    #[cfg(target_os = "macos")]
+    if let Err(e) = res {
+      eprintln!("Error displaying notification: {}", e);
+    }
+  }
+
+  #[cfg(target_os = "macos")]
+  fn display_notification(&self) {
     let res = Notification::new()
       .body(self.label.as_str())
       .show()
@@ -143,7 +149,13 @@ impl Job {
       .wait_for_action(|action| match action {
         _ => (),
       });
-    #[cfg(target_os = "windows")]
+    if let Err(e) = res {
+      eprintln!("Error displaying notification: {}", e);
+    }
+  }
+
+  #[cfg(target_os = "windows")]
+  fn display_notification(&self) {
     let res = Notification::new()
       .body(self.label.as_str())
       .sound_name(SOUND)

@@ -7,9 +7,12 @@ use eframe::{
   egui::{Button, CentralPanel, Context, RichText, ScrollArea, Ui, Window},
   App,
 };
-use notifier::{check_cron, save_contents, NotificationDetails, Notifications};
 
-use crate::job_scheduler::{Job, JobScheduler};
+use crate::{
+  check_cron,
+  job_scheduler::{Job, JobScheduler},
+  save_contents, NotificationDetails, Notifications,
+};
 
 #[derive(Debug)]
 pub struct Alarm {
