@@ -1,4 +1,9 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{
+  path::PathBuf,
+  str::FromStr,
+  sync::mpsc::{Receiver, Sender},
+  thread,
+};
 
 use chrono::Local;
 
@@ -21,7 +26,6 @@ pub struct Alarm {
   end_time: chrono::Local,
 }
 
-#[derive(Default)]
 pub struct Notifier {
   notifications: Notifications,
   notification_detail: NotificationDetails,
@@ -29,13 +33,29 @@ pub struct Notifier {
   add: bool,
   alarms: Vec<Alarm>,
   schedules: JobScheduler,
+  tx: Sender<()>,
+}
+
+fn thread_and_notifications(rx: Receiver<()>) {
+  thread::spawn(move || loop {
+    if let Ok(_) = rx.recv() {
+      println!("Received a message");
+    }
+  });
 }
 
 impl Notifier {
   pub fn new(_cc: &eframe::CreationContext<'_>, path: PathBuf) -> Self {
+    let (tx, rx) = std::sync::mpsc::channel::<()>();
+    thread_and_notifications(rx);
     Self {
       path,
-      ..Self::default()
+      tx,
+      notifications: Notifications::default(),
+      notification_detail: NotificationDetails::default(),
+      add: false,
+      alarms: Vec::new(),
+      schedules: JobScheduler::new(),
     }
   }
 
@@ -44,6 +64,8 @@ impl Notifier {
     notify: Notifications,
     path: PathBuf,
   ) -> Self {
+    let (tx, rx) = std::sync::mpsc::channel::<()>();
+    thread_and_notifications(rx);
     Self {
       notifications: notify,
       notification_detail: NotificationDetails::default(),
@@ -51,6 +73,7 @@ impl Notifier {
       add: false,
       alarms: Vec::new(),
       schedules: JobScheduler::new(),
+      tx: tx,
     }
   }
 
@@ -90,11 +113,14 @@ impl Notifier {
         let result = save_contents(&self.path, &self.notifications);
         match result {
             Ok(()) => {
-              // Some form of a toast or notification
+              // Some form of a toast or notification for success
+              if let Err(e) = self.tx.send(()) {
+                eprintln!("Error sending message: {:?}", e);
+              }
               self.add = false;
             },
             Err(err) => {
-              // Some form of a toast or notification
+              // Some form of a toast or notification for failure
               eprintln!("Error saving to {}", self.path.display());
               eprintln!("Error saving the notifications: {}", err);
             }
@@ -150,6 +176,10 @@ impl Notifier {
         self.notifications.notifications.remove(selected_index);
         if let Err(err) = save_contents(&self.path, &self.notifications) {
           println!("Error: {}", err);
+        } else {
+          if let Err(e) = self.tx.send(()) {
+            eprintln!("Error sending message: {:?}", e);
+          }
         }
       }
       if add {
