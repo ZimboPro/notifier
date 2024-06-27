@@ -2,28 +2,23 @@
 extern crate chrono;
 extern crate cron;
 
-#[cfg(not(debug_assertions))]
 use std::path::PathBuf;
 
-#[cfg(not(debug_assertions))]
 use auto_launch::AutoLaunch;
 use eframe::{run_native, NativeOptions};
 use notifier::{load_file_and_deserialise, notifier_gui::Notifier};
 
-#[cfg(not(debug_assertions))]
 struct AppDetails {
   path: PathBuf,
   name: String,
 }
 
-#[cfg(not(debug_assertions))]
 fn get_app_name() -> color_eyre::eyre::Result<AppDetails> {
   let path = std::env::current_exe().unwrap();
   let name = String::from(path.file_name().unwrap().to_str().unwrap());
   Ok(AppDetails { path, name })
 }
 
-#[cfg(not(debug_assertions))]
 fn enable_auto_launch() -> color_eyre::eyre::Result<()> {
   let app_details = get_app_name()?;
   let auto: AutoLaunch = AutoLaunch::new(
