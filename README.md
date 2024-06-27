@@ -2,7 +2,7 @@
 
 ## Purpose
 
-To give me a reminder to stretch/drink water etc based on what I configure.
+To give me a reminder such as to stretch, drink water etc based on what I configure.
 
 ## How it works
 
@@ -42,7 +42,7 @@ NOTE: This does not setup the executable to run at start up.
 
 ### Support
 
-It is supported on Linux and Windows. MacOS still needs to be tested but should theoretically work.
+It has been tested on Linux and Windows. MacOS still needs to be tested but should theoretically work.
 
 ### Start Up
 
@@ -63,6 +63,7 @@ A script or instructions to have the executable run at start up still needs to b
     - [ ] Store favourite alarms
  - [ ] Timer
     - [ ] Store favourite timers
+ - [ ] Application Icon
 
 ## Decisions
 

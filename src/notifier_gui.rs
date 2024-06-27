@@ -193,5 +193,11 @@ impl App for Notifier {
         }
       }
     });
+
+    // Continuous mode
+    // increases CPU usage
+    // TODO investigate how to make this more efficient
+    // TODO determine if separate thread is needed
+    ctx.request_repaint();
   }
 }
