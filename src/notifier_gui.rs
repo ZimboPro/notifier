@@ -16,7 +16,7 @@ use eframe::{
 use crate::{
   check_cron,
   job_scheduler::{Job, JobScheduler},
-  save_contents, NotificationDetails, Notifications,
+  load_file_and_deserialise, save_contents, NotificationDetails, Notifications,
 };
 
 #[derive(Debug)]
@@ -29,17 +29,38 @@ pub struct Alarm {
 pub struct Notifier {
   notifications: Notifications,
   notification_detail: NotificationDetails,
+  selected_index: Option<usize>,
   path: PathBuf,
   add: bool,
   alarms: Vec<Alarm>,
-  schedules: JobScheduler,
   tx: Sender<()>,
 }
 
-fn thread_and_notifications(rx: Receiver<()>) {
-  thread::spawn(move || loop {
-    if let Ok(_) = rx.recv() {
-      println!("Received a message");
+fn thread_and_notifications(rx: Receiver<()>, notifications: Notifications, path: PathBuf) {
+  thread::spawn(move || {
+    let mut schedules = JobScheduler::new();
+    let mut notifications = notifications;
+    loop {
+      if !notifications.notifications.is_empty() {
+        for notify in notifications.notifications.iter_mut() {
+          if notify.job_id.is_none() {
+            let cron = notify.cron.as_str();
+            if check_cron(cron) {
+              let schedule: Schedule = cron.parse().unwrap();
+              let uuid = schedules.add(Job::new(schedule, notify.label.clone()));
+              notify.job_id = Some(uuid);
+            }
+          }
+        }
+        schedules.tick_with_system_time();
+      }
+      if let Ok(_) = rx.try_recv() {
+        schedules.remove_all();
+        if let Ok(n) = load_file_and_deserialise(&path) {
+          notifications = n;
+        }
+      }
+      thread::sleep(std::time::Duration::from_secs(10));
     }
   });
 }
@@ -47,15 +68,15 @@ fn thread_and_notifications(rx: Receiver<()>) {
 impl Notifier {
   pub fn new(_cc: &eframe::CreationContext<'_>, path: PathBuf) -> Self {
     let (tx, rx) = std::sync::mpsc::channel::<()>();
-    thread_and_notifications(rx);
+    thread_and_notifications(rx, Notifications::default(), path.clone());
     Self {
       path,
       tx,
       notifications: Notifications::default(),
       notification_detail: NotificationDetails::default(),
+      selected_index: None,
       add: false,
       alarms: Vec::new(),
-      schedules: JobScheduler::new(),
     }
   }
 
@@ -65,15 +86,15 @@ impl Notifier {
     path: PathBuf,
   ) -> Self {
     let (tx, rx) = std::sync::mpsc::channel::<()>();
-    thread_and_notifications(rx);
+    thread_and_notifications(rx, notify.clone(), path.clone());
     Self {
       notifications: notify,
       notification_detail: NotificationDetails::default(),
+      selected_index: None,
       path,
       add: false,
       alarms: Vec::new(),
-      schedules: JobScheduler::new(),
-      tx: tx,
+      tx,
     }
   }
 
@@ -96,28 +117,23 @@ impl Notifier {
       let valid = !self.notification_detail.label.is_empty() && cron.is_ok();
       let b = ui.add_enabled(valid, b);
       if b.enabled() && b.clicked() {
-        if let Some(uuid) = self.notification_detail.job_id {
-          self.schedules.remove(uuid);
-          self.notifications.notifications.iter_mut().for_each(|notify| {
-            if notify.job_id == self.notification_detail.job_id {
-              notify.label = self.notification_detail.label.clone();
-              notify.cron = self.notification_detail.cron.clone();
-              notify.job_id = None;
-            }
-          });
+        if let Some(index) = self.selected_index {
+          self.notifications.notifications[index].label = self.notification_detail.label.clone();
+          self.notifications.notifications[index].cron = self.notification_detail.cron.clone();
         } else {
           self.notification_detail.level = "Info".to_string();
           self.notifications.notifications.push(self.notification_detail.clone());
         }
-        self.notification_detail = NotificationDetails::default();
         let result = save_contents(&self.path, &self.notifications);
         match result {
-            Ok(()) => {
-              // Some form of a toast or notification for success
-              if let Err(e) = self.tx.send(()) {
-                eprintln!("Error sending message: {:?}", e);
-              }
+          Ok(()) => {
+            // Some form of a toast or notification for success
+            if let Err(e) = self.tx.send(()) {
+              eprintln!("Error sending message: {:?}", e);
+            }
+            self.notification_detail = NotificationDetails::default();
               self.add = false;
+              self.selected_index = None;
             },
             Err(err) => {
               // Some form of a toast or notification for failure
@@ -168,14 +184,9 @@ impl Notifier {
         ui.separator();
       }
       if remove {
-        let uuid = self.notifications.notifications[selected_index]
-          .job_id
-          .as_ref()
-          .unwrap();
-        self.schedules.remove(uuid.to_owned());
         self.notifications.notifications.remove(selected_index);
         if let Err(err) = save_contents(&self.path, &self.notifications) {
-          println!("Error: {}", err);
+          eprintln!("Error: {}", err);
         } else {
           if let Err(e) = self.tx.send(()) {
             eprintln!("Error sending message: {:?}", e);
@@ -185,30 +196,14 @@ impl Notifier {
       if add {
         self.add = true;
         self.notification_detail = self.notifications.notifications[selected_index].clone();
+        self.selected_index = Some(selected_index);
       }
     });
-  }
-
-  fn add_and_tick_schedules(&mut self) {
-    if !self.notifications.notifications.is_empty() {
-      for notify in self.notifications.notifications.iter_mut() {
-        if notify.job_id.is_none() {
-          let cron = notify.cron.as_str();
-          if check_cron(cron) {
-            let schedule: Schedule = cron.parse().unwrap();
-            let uuid = self.schedules.add(Job::new(schedule, notify.label.clone()));
-            notify.job_id = Some(uuid);
-          }
-        }
-      }
-      self.schedules.tick_with_system_time();
-    }
   }
 }
 
 impl App for Notifier {
   fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
-    self.add_and_tick_schedules();
     CentralPanel::default().show(ctx, |ui| {
       if self.notifications.notifications.is_empty() {
         self.render_add_notification(ctx);
@@ -223,11 +218,5 @@ impl App for Notifier {
         }
       }
     });
-
-    // Continuous mode
-    // increases CPU usage
-    // TODO investigate how to make this more efficient
-    // TODO determine if separate thread is needed
-    ctx.request_repaint();
   }
 }
