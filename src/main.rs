@@ -20,6 +20,9 @@ fn get_app_name() -> color_eyre::eyre::Result<AppDetails> {
 }
 
 fn enable_auto_launch() -> color_eyre::eyre::Result<()> {
+  if cfg!(debug_assertions) {
+    return Ok(());
+  }
   let app_details = get_app_name()?;
   let auto: AutoLaunch = AutoLaunch::new(
     app_details.name.as_str(),
@@ -33,10 +36,8 @@ fn enable_auto_launch() -> color_eyre::eyre::Result<()> {
 }
 
 fn main() -> color_eyre::eyre::Result<()> {
-  #[cfg(not(debug_assertions))]
   let res = enable_auto_launch();
   color_eyre::install()?;
-  #[cfg(not(debug_assertions))]
   if res.is_err() {
     return res;
   }

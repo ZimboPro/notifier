@@ -302,6 +302,11 @@ impl JobScheduler {
     found_index.is_some()
   }
 
+  /// Remove all jobs from the `JobScheduler`
+  pub fn remove_all(&mut self) {
+    self.jobs.clear();
+  }
+
   /// The `tick` method increments time for the JobScheduler and executes
   /// any pending jobs. It is recommended to sleep for at least 500
   /// milliseconds between invocations of this method.
