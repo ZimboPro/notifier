@@ -5,11 +5,11 @@ use std::{
   thread,
 };
 
-use chrono::Local;
+use chrono::{DateTime, Datelike, Duration, Local, TimeZone};
 
 use cron::Schedule;
 use eframe::{
-  egui::{Button, CentralPanel, Context, RichText, ScrollArea, Ui, Window},
+  egui::{Button, CentralPanel, Context, RichText, ScrollArea, Slider, Ui, Window},
   App,
 };
 
@@ -19,11 +19,23 @@ use crate::{
   load_file_and_deserialise, save_contents, NotificationDetails, Notifications,
 };
 
+#[derive(Debug, PartialEq)]
+enum TimeType {
+  Duration,
+  Time,
+}
+
 #[derive(Debug)]
 pub struct Alarm {
-  start_time: chrono::Local,
+  start_time: DateTime<Local>,
   duration: chrono::Duration,
-  end_time: chrono::Local,
+  end_time: DateTime<Local>,
+}
+
+#[derive(Debug, Default)]
+struct AlarmInput {
+  hour: i32,
+  min: i32,
 }
 
 pub struct Notifier {
@@ -31,8 +43,11 @@ pub struct Notifier {
   notification_detail: NotificationDetails,
   selected_index: Option<usize>,
   path: PathBuf,
-  add: bool,
+  add_notification: bool,
+  add_alarm: bool,
+  alarm: AlarmInput,
   alarms: Vec<Alarm>,
+  time_type: TimeType,
   tx: Sender<()>,
 }
 
@@ -75,7 +90,10 @@ impl Notifier {
       notifications: Notifications::default(),
       notification_detail: NotificationDetails::default(),
       selected_index: None,
-      add: false,
+      add_notification: false,
+      time_type: TimeType::Time,
+      alarm: AlarmInput::default(),
+      add_alarm: false,
       alarms: Vec::new(),
     }
   }
@@ -92,7 +110,10 @@ impl Notifier {
       notification_detail: NotificationDetails::default(),
       selected_index: None,
       path,
-      add: false,
+      add_notification: false,
+      alarm: AlarmInput::default(),
+      add_alarm: false,
+      time_type: TimeType::Time,
       alarms: Vec::new(),
       tx,
     }
@@ -112,11 +133,17 @@ impl Notifier {
       ui.label("e.g. {{sec}}   {{min}}   {{hour}}   {{day of month}}   {{month}}   {{day of week}}   {{year}}");
       ui.hyperlink_to("Cron details", "https://crates.io/crates/job_scheduler");
 
-      let b = Button::new("Save");
+      let save_btn = Button::new("Save");
+      let cancel_btn = ui.button("Cancel");
+      if cancel_btn.clicked() {
+        self.notification_detail = NotificationDetails::default();
+              self.add_notification = false;
+              self.selected_index = None;
+      }
       let cron = Schedule::from_str(self.notification_detail.cron.as_str());
       let valid = !self.notification_detail.label.is_empty() && cron.is_ok();
-      let b = ui.add_enabled(valid, b);
-      if b.enabled() && b.clicked() {
+      let save_btn = ui.add_enabled(valid, save_btn);
+      if save_btn.enabled() && save_btn.clicked() {
         if let Some(index) = self.selected_index {
           self.notifications.notifications[index].label = self.notification_detail.label.clone();
           self.notifications.notifications[index].cron = self.notification_detail.cron.clone();
@@ -132,7 +159,7 @@ impl Notifier {
               eprintln!("Error sending message: {:?}", e);
             }
             self.notification_detail = NotificationDetails::default();
-              self.add = false;
+              self.add_notification = false;
               self.selected_index = None;
             },
             Err(err) => {
@@ -145,10 +172,64 @@ impl Notifier {
     });
   }
 
+  fn render_add_alarm(&mut self, ctx: &Context) {
+    Window::new("Add Alarm").show(ctx, |ui| {
+      ui.label("Add a alarm");
+      ui.add(Slider::new(&mut self.alarm.hour, 0..=23).text("Hour"));
+      ui.add(Slider::new(&mut self.alarm.min, 0..=59).text("Hour"));
+      ui.radio_value(&mut self.time_type, TimeType::Time, "Alarm");
+      ui.radio_value(&mut self.time_type, TimeType::Duration, "Timer");
+      let btn = ui.button("Save");
+      if btn.clicked() {
+        match self.time_type {
+          TimeType::Duration => {
+            let dur =
+              Duration::hours(self.alarm.hour as i64) + Duration::minutes(self.alarm.min as i64);
+            let alarm = Alarm {
+              start_time: Local::now(),
+              duration: dur,
+              end_time: Local::now() + dur,
+            };
+            self.alarms.push(alarm);
+            self.alarm = AlarmInput::default();
+            self.add_alarm = false;
+          }
+          TimeType::Time => {
+            let now = Local::now();
+            let alarm_time = Local
+              .with_ymd_and_hms(
+                now.year(),
+                now.month(),
+                now.day(),
+                self.alarm.hour as u32,
+                self.alarm.min as u32,
+                0,
+              )
+              .unwrap();
+            let dur = alarm_time - now;
+            let alarm = Alarm {
+              start_time: now,
+              duration: dur,
+              end_time: alarm_time,
+            };
+            self.alarms.push(alarm);
+            self.alarm = AlarmInput::default();
+            self.add_alarm = false;
+          }
+        }
+      }
+      let cancel_btn = ui.button("Cancel");
+      if cancel_btn.clicked() {
+        self.alarm = Default::default();
+        self.add_alarm = false;
+      }
+    });
+  }
+
   fn render_card(&mut self, ui: &mut Ui) {
     ScrollArea::vertical().show(ui, |ui| {
       let mut remove = false;
-      let mut add = false;
+      let mut edit = false;
       let mut selected_index = 0;
       for (index, notification) in self.notifications.notifications.iter().enumerate() {
         ui.add_space(10.);
@@ -162,7 +243,7 @@ impl Notifier {
           }
           let btn = ui.button("Edit");
           if btn.clicked() {
-            add = true;
+            edit = true;
             selected_index = index;
           }
         });
@@ -193,8 +274,8 @@ impl Notifier {
           }
         }
       }
-      if add {
-        self.add = true;
+      if edit {
+        self.add_notification = true;
         self.notification_detail = self.notifications.notifications[selected_index].clone();
         self.selected_index = Some(selected_index);
       }
@@ -205,16 +286,23 @@ impl Notifier {
 impl App for Notifier {
   fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
     CentralPanel::default().show(ctx, |ui| {
-      if self.notifications.notifications.is_empty() {
+      if self.notifications.notifications.is_empty() && self.alarms.is_empty() {
         self.render_add_notification(ctx);
       } else {
         self.render_card(ui);
-        let btn = ui.button("Add");
+        let btn = ui.button("Add Notification");
         if btn.clicked() {
-          self.add = true;
+          self.add_notification = true;
         }
-        if self.add {
+        let btn = ui.button("Add Alarm");
+        if btn.clicked() {
+          self.add_alarm = true;
+        }
+        if self.add_notification {
           self.render_add_notification(ctx);
+        }
+        if self.add_alarm {
+          self.render_add_alarm(ctx);
         }
       }
     });
