@@ -58,7 +58,13 @@ fn main() -> color_eyre::eyre::Result<()> {
         let s = run_native(
           "Notifier",
           options,
-          Box::new(|cc| Box::new(Notifier::new_with_data(cc, notifications, file_path))),
+          Box::new(|cc| {
+            Ok(Box::new(Notifier::new_with_data(
+              cc,
+              notifications,
+              file_path,
+            )))
+          }),
         );
         if let Err(e) = s {
           eprintln!("Error: {:?}", e);
@@ -71,7 +77,7 @@ fn main() -> color_eyre::eyre::Result<()> {
         let s = run_native(
           "Notifier",
           options,
-          Box::new(|cc| Box::new(Notifier::new(cc, file_path))),
+          Box::new(|cc| Ok(Box::new(Notifier::new(cc, file_path)))),
         );
         if let Err(e) = s {
           eprintln!("Error: {:?}", e);
