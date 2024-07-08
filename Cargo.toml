@@ -21,7 +21,7 @@ chrono = "0.4.19"
 home = "0.5.3"
 uuid = { version = "0.8", features = ["v4"] }
 serde = { version = "1.0", features = ["derive"] }
-serde_yaml = "0.8"
+serde_yaml = "0.9"
 eframe = "0.28.1"
 color-eyre = "0.6.2"
 auto-launch = "0.5.0"
