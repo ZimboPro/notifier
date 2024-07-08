@@ -10,8 +10,5 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Install nightly toolchain
-        uses: actions-rs/toolchain@v1
-
       - name: Cargo check
         run: cargo check
