@@ -36,7 +36,7 @@ pub fn get_config_path() -> Result<PathBuf, Errors> {
 
 pub fn check_cron(cron_str: &str) -> bool {
   let cron = Schedule::from_str(cron_str);
-  let variables = cron_str.split(' ').count();
+  let variables = cron_str.split(' ').filter(|x| !x.is_empty()).count();
   if variables != 7 {
     println!(
       "Cron '{}' is invalid: There needs to be 7 variables",
@@ -52,5 +52,24 @@ pub fn check_cron(cron_str: &str) -> bool {
       println!("Cron {} is invalid: {}", cron_str, err);
       false
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_check_cron() {
+    assert_eq!(check_cron("0 0 * * * * *"), true);
+    assert_eq!(check_cron("0 0 * * * *"), false);
+  }
+
+  #[test]
+  fn test_cron_multiple_spaces() {
+    assert_eq!(check_cron("0 0 * * * * * *"), false);
+    assert_eq!(check_cron("0 0 * * * *"), false);
+    assert_eq!(check_cron("0 0 * * * * * "), true);
+    assert_eq!(check_cron("0 0 * * * *  * "), true);
   }
 }
