@@ -15,7 +15,7 @@ eula = false
 
 [dependencies]
 notify-rust = "4.5.6"
-cron = "0.12.1"
+cron = "0.13.0"
 chrono = "0.4.19"
 # job_scheduler = "1.2.1"
 home = "0.5.3"
