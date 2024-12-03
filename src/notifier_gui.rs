@@ -5,11 +5,13 @@ use std::{
   thread,
 };
 
-use chrono::{DateTime, Datelike, Duration, Local, TimeZone};
+use chrono::{DateTime, Datelike, Duration, Local, TimeZone, Timelike};
 
 use cron::Schedule;
 use eframe::{
-  egui::{Button, CentralPanel, Context, RichText, ScrollArea, Slider, Ui, Window},
+  egui::{
+    self, Button, CentralPanel, Context, RichText, ScrollArea, SidePanel, Slider, Ui, Window,
+  },
   App,
 };
 
@@ -30,12 +32,14 @@ pub struct Alarm {
   start_time: DateTime<Local>,
   duration: chrono::Duration,
   end_time: DateTime<Local>,
+  message: Option<String>,
 }
 
 #[derive(Debug, Default)]
 struct AlarmInput {
   hour: i32,
   min: i32,
+  message: String,
 }
 
 pub struct Notifier {
@@ -176,7 +180,9 @@ impl Notifier {
     Window::new("Add Alarm").show(ctx, |ui| {
       ui.label("Add a alarm");
       ui.add(Slider::new(&mut self.alarm.hour, 0..=23).text("Hour"));
-      ui.add(Slider::new(&mut self.alarm.min, 0..=59).text("Hour"));
+      ui.add(Slider::new(&mut self.alarm.min, 0..=59).text("Minute"));
+      ui.label("Message (Optional):");
+      ui.text_edit_singleline(&mut self.alarm.message);
       ui.radio_value(&mut self.time_type, TimeType::Time, "Alarm");
       ui.radio_value(&mut self.time_type, TimeType::Duration, "Timer");
       let btn = ui.button("Save");
@@ -189,6 +195,11 @@ impl Notifier {
               start_time: Local::now(),
               duration: dur,
               end_time: Local::now() + dur,
+              message: if self.alarm.message.trim().is_empty() {
+                None
+              } else {
+                Some(self.alarm.message.clone())
+              },
             };
             self.alarms.push(alarm);
             self.alarm = AlarmInput::default();
@@ -211,6 +222,11 @@ impl Notifier {
               start_time: now,
               duration: dur,
               end_time: alarm_time,
+              message: if self.alarm.message.trim().is_empty() {
+                None
+              } else {
+                Some(self.alarm.message.clone())
+              },
             };
             self.alarms.push(alarm);
             self.alarm = AlarmInput::default();
@@ -285,6 +301,39 @@ impl Notifier {
 
 impl App for Notifier {
   fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
+    if !self.alarms.is_empty() {
+      SidePanel::right("alarms").show(ctx, |ui| {
+        let mut remove = false;
+        let mut selected_index = 0;
+        let mut edit = false;
+        for (index, alarm) in self.alarms.iter().enumerate() {
+          ui.add_space(10.);
+          ui.horizontal_top(|ui| {
+            let label =
+              RichText::new(alarm.message.clone().unwrap_or("Alarm".to_string())).size(20.);
+            ui.label(label);
+            let btn = ui.button("Remove");
+            if btn.clicked() {
+              remove = true;
+              selected_index = index;
+            }
+            let btn = ui.button("Edit");
+            if btn.clicked() {
+              edit = true;
+              selected_index = index;
+            }
+          });
+          ui.label(format!(
+            "{:02}:{:02}",
+            alarm.end_time.hour(),
+            alarm.end_time.minute(),
+          ));
+
+          ui.add_space(10.);
+          ui.separator();
+        }
+      });
+    }
     CentralPanel::default().show(ctx, |ui| {
       if self.notifications.notifications.is_empty() && self.alarms.is_empty() {
         self.render_add_notification(ctx);
