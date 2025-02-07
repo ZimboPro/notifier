@@ -14,12 +14,12 @@ eula = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-notify-rust = "4.5.6"
+notify-rust = "4.11.4"
 cron = "0.12.1"
-chrono = "0.4.19"
+chrono = "0.4.39"
 # job_scheduler = "1.2.1"
-home = "0.5.3"
-uuid = { version = "1.9", features = ["v4"] }
+home = "0.5.11"
+uuid = { version = "1.13", features = ["v4"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
 eframe = "0.30.0"
