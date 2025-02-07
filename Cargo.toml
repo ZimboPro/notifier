@@ -1,6 +1,6 @@
 [package]
 name = "notifier"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 repository = "https://github.com/ZimboPro/notifier"
 authors = ["Leslie de Jager"]
