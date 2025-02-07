@@ -9,9 +9,7 @@ use chrono::{DateTime, Datelike, Duration, Local, TimeZone, Timelike};
 
 use cron::Schedule;
 use eframe::{
-  egui::{
-    self, Button, CentralPanel, Context, RichText, ScrollArea, SidePanel, Slider, Ui, Window,
-  },
+  egui::{Button, CentralPanel, Context, RichText, ScrollArea, SidePanel, Slider, Ui, Window},
   App,
 };
 
