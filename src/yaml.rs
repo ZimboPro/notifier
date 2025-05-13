@@ -16,6 +16,8 @@ pub struct NotificationDetails {
   pub level: String,
   #[serde(skip)]
   pub job_id: Option<Uuid>,
+  #[serde(default)]
+  pub ssid: String,
 }
 
 #[derive(Debug, Error)]

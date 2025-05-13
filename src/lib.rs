@@ -4,9 +4,10 @@ mod yaml;
 use std::{path::PathBuf, str::FromStr};
 
 use cron::Schedule;
+use rswifi::{Result, WiFiInterface, WifiUtil};
 use thiserror::Error;
-pub use yaml::{load_file_and_deserialise, save_contents};
 pub use yaml::{NotificationDetails, Notifications};
+pub use yaml::{load_file_and_deserialise, save_contents};
 
 #[derive(Debug, Error)]
 pub enum Errors {
@@ -42,7 +43,9 @@ pub fn check_cron(cron_str: &str) -> bool {
       "Cron '{}' is invalid: There needs to be 7 variables",
       cron_str
     );
-    println!("e.g. {{sec}}   {{min}}   {{hour}}   {{day of month}}   {{month}}   {{day of week}}   {{year}}");
+    println!(
+      "e.g. {{sec}}   {{min}}   {{hour}}   {{day of month}}   {{month}}   {{day of week}}   {{year}}"
+    );
     println!("See https://crates.io/crates/job_scheduler for more details");
     return false;
   }
@@ -52,6 +55,31 @@ pub fn check_cron(cron_str: &str) -> bool {
       println!("Cron {} is invalid: {}", cron_str, err);
       false
     }
+  }
+}
+
+pub fn get_wifi() -> Vec<String> {
+  match WifiUtil::new() {
+    Ok(util) => {
+      if let Ok(ifaces) = util.interfaces() {
+        let iface = ifaces.first().unwrap();
+        let mut wifi_list = Vec::new();
+        if iface.scan().is_ok() {
+          if let Ok(results) = iface.scan_results() {
+            for ap in results {
+              wifi_list.push(ap.ssid().to_string());
+            }
+          } else {
+            println!("Error getting scan results");
+          }
+        }
+        wifi_list
+      } else {
+        println!("Error getting interfaces");
+        vec![]
+      }
+    }
+    Err(_) => vec![],
   }
 }
 

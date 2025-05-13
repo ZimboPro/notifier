@@ -9,14 +9,14 @@ use chrono::{DateTime, Datelike, Duration, Local, TimeZone};
 
 use cron::Schedule;
 use eframe::{
-  egui::{Button, CentralPanel, Context, RichText, ScrollArea, Slider, Ui, Window},
   App,
+  egui::{Button, CentralPanel, Context, RichText, ScrollArea, Slider, Ui, Window},
 };
 
 use crate::{
-  check_cron,
+  NotificationDetails, Notifications, check_cron, get_wifi,
   job_scheduler::{Job, JobScheduler},
-  load_file_and_deserialise, save_contents, NotificationDetails, Notifications,
+  load_file_and_deserialise, save_contents,
 };
 
 #[derive(Debug, PartialEq)]
@@ -62,7 +62,11 @@ fn thread_and_notifications(rx: Receiver<()>, notifications: Notifications, path
             let cron = notify.cron.as_str();
             if check_cron(cron) {
               let schedule: Schedule = cron.parse().unwrap();
-              let uuid = schedules.add(Job::new(schedule, notify.label.clone()));
+              let uuid = schedules.add(Job::new_with_wifi(
+                schedule,
+                notify.label.clone(),
+                notify.ssid.clone(),
+              ));
               notify.job_id = Some(uuid);
             }
           }
@@ -132,6 +136,12 @@ impl Notifier {
       });
       ui.label("e.g. {{sec}}   {{min}}   {{hour}}   {{day of month}}   {{month}}   {{day of week}}   {{year}}");
       ui.hyperlink_to("Cron details", "https://crates.io/crates/job_scheduler");
+      ui.horizontal_top(|ui| {
+        ui.label("Wifi:");
+        ui.text_edit_singleline(& mut self.notification_detail.ssid);
+      });
+      ui.label("This will limit it so that the notification will only work when there is or isn't WiFI SSIDs present");
+      ui.label("e.g. To be present ssid-1,ssid-2   e.g. When not present !ssid-1,!ssid-1");
 
       let save_btn = Button::new("Save");
       let cancel_btn = ui.button("Cancel");

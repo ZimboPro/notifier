@@ -60,7 +60,7 @@ extern crate chrono;
 extern crate cron;
 extern crate uuid;
 
-use chrono::{offset, DateTime, Duration, Local, TimeZone, Utc};
+use chrono::{DateTime, Duration, Local, TimeZone, Utc, offset};
 pub use cron::Schedule;
 use notify_rust::Notification;
 pub use uuid::Uuid;
@@ -103,6 +103,7 @@ pub struct Job {
   limit_missed_runs: usize,
   label: String,
   job_id: Uuid,
+  ssids: String,
 }
 
 impl Job {
@@ -122,6 +123,19 @@ impl Job {
       last_tick_local: None,
       limit_missed_runs: 1,
       job_id: Uuid::new_v4(),
+      ssids: Default::default(),
+    }
+  }
+
+  pub fn new_with_wifi(schedule: Schedule, label: String, ssids: String) -> Job {
+    Job {
+      label,
+      schedule,
+      last_tick: None,
+      last_tick_local: None,
+      limit_missed_runs: 1,
+      job_id: Uuid::new_v4(),
+      ssids,
     }
   }
 
@@ -152,6 +166,29 @@ impl Job {
 
   #[cfg(target_os = "windows")]
   fn display_notification(&self) -> Result<(), Errors> {
+    use crate::get_wifi;
+
+    let mut display = false;
+    if !self.ssids.is_empty() {
+      let ssids = get_wifi();
+      let cond: Vec<&str> = self.ssids.split(",").collect();
+      for ssid in cond {
+        if ssid.starts_with("!") {
+          if !ssids.contains(&ssid.trim_start_matches('!').to_string()) {
+            display = true;
+            break;
+          }
+        } else {
+          if ssids.contains(&ssid.to_string()) {
+            display = true;
+            break;
+          }
+        }
+      }
+    }
+    if !self.ssids.is_empty() && !display {
+      return Ok(());
+    }
     Notification::new()
       .body(self.label.as_str())
       .sound_name(SOUND)
